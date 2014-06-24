@@ -1,6 +1,7 @@
 SET(DGTAL_TESTS_SRC
   testMeasureSet
   testVoronoiCovarianceMeasure
+  testGeneralizedVoronoiCovarianceMeasure
   )
 
 FOREACH(FILE ${DGTAL_TESTS_SRC})

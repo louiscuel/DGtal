@@ -139,6 +139,10 @@ namespace DGtal
 
 // ------------------------------------------------------------ Added by Anis Benyoub
 
+
+  inline
+    RealVector normal( const RealPoint &aPoint ) const;
+
     /**
        Mean curvature estimation.
        This computation is based on the hessian formula of the mean curvature

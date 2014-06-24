@@ -195,6 +195,20 @@ meanCurvature( const RealPoint &aPoint ) const
 
 
 
+template <typename TSpace>
+inline
+typename DGtal::ImplicitPolynomial3Shape<TSpace>::RealVector
+DGtal::ImplicitPolynomial3Shape<TSpace>::
+normal( const RealPoint &aPoint ) const
+{
+  double vFx= myFx( aPoint[ 0 ] )( aPoint[ 1 ] )( aPoint[ 2 ] );
+  double vFy= myFy( aPoint[ 0 ] )( aPoint[ 1 ] )( aPoint[ 2 ] );
+  double vFz= myFz( aPoint[ 0 ] )( aPoint[ 1 ] )( aPoint[ 2 ] );
+//	std::cout << vFx << std::endl;
+	return RealVector(vFx,vFy,vFz);
+}
+
+
 //-----------------------------------------------------------------------------
 template <typename TSpace>
 inline
@@ -206,7 +220,7 @@ gaussianCurvature( const RealPoint &aPoint ) const
   double vFx= myFx( aPoint[ 0 ] )( aPoint[ 1 ] )( aPoint[ 2 ] );
   double vFy= myFy( aPoint[ 0 ] )( aPoint[ 1 ] )( aPoint[ 2 ] );
   double vFz= myFz( aPoint[ 0 ] )( aPoint[ 1 ] )( aPoint[ 2 ] );
-
+	std::cout << vFx << std::endl;
   double vFxx= myFxx( aPoint[ 0 ] )( aPoint[ 1 ] )( aPoint[ 2 ] );
   double vFxy= myFxy( aPoint[ 0 ] )( aPoint[ 1 ] )( aPoint[ 2 ] );
   double vFxz= myFxz( aPoint[ 0 ] )( aPoint[ 1 ] )( aPoint[ 2 ] );

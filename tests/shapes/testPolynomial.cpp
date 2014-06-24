@@ -207,6 +207,8 @@ int main( int argc, char** argv )
     A = ishape.nearestPoint (A,0.01,200,0.1*step);
 //    double a=ishape.gaussianCurvature(A);
     double a = ishape.meanCurvature( A );
+
+    ishape.normal(A);
     if ( boost::math::isnan( a ))
     {
       a = 0;
