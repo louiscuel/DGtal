@@ -140,13 +140,13 @@ inline
 void
 DGtal::VCMDigitalSurfaceLocalEstimator<TDigitalSurfaceContainer, TSeparableMetric, TKernelFunction, TVCMGeometricFunctor>::
 setParams( Surfel2PointEmbedding surfelEmbedding,
-           const Scalar R, const Scalar r, KernelFunction chi_r,
+           const Scalar R, const Scalar r, int k, KernelFunction chi_r,
            const Scalar t, Metric aMetric, bool verbose )
 {
   mySurfelEmbedding = surfelEmbedding;
   myVCMOnSurface = CountedConstPtrOrConstPtr<VCMOnSurface>
     ( new VCMOnSurface( mySurface, mySurfelEmbedding,
-                        R, r, chi_r, t, aMetric, verbose ), true );
+                        R, r, k, chi_r, t, aMetric, verbose ), true );
   myGeomFct.attach( myVCMOnSurface );
 }
 //-----------------------------------------------------------------------------

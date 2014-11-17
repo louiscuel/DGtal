@@ -32,7 +32,7 @@
 #include <vector>
 #include "DGtal/base/Common.h"
 #include "DGtal/helpers/StdDefs.h"
-#include "DGtal/geometry/volumes/estimation/VoronoiCovarianceMeasure.h"
+#include "DGtal/geometry/volumes/estimation/GeneralizedVoronoiCovarianceMeasure.h"
 #include "DGtal/geometry/volumes/CubicalSubdivision.h"
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -40,27 +40,33 @@
 ///////////////////////////////////////////////////////////////////////////////
 // Functions for testing class VoronoiCovarianceMeasure
 ///////////////////////////////////////////////////////////////////////////////
-
+using namespace DGtal;
 /**
  * Example of a test. To be completed.
  *
  */
-bool testVoronoiCovarianceMeasure()
+bool testGeneralizedVoronoiCovarianceMeasure()
 {
   unsigned int nbok = 0;
   unsigned int nb = 0;
   
   using namespace DGtal;
   using namespace DGtal::Z3i; // gets Space, Point, Domain
-  trace.beginBlock ( "testVoronoiCovarianceMeasure" );
-  typedef ExactPredicateLpSeparableMetric<Space,2> Metric;
-  typedef VoronoiCovarianceMeasure<Space, Metric> VCM;
+  //trace.beginBlock ( "testGeneralizedVoronoiCovarianceMeasure" );
+  typedef ExactPredicateLpPowerSeparableMetric<Space,2> Metric;
+  typedef GeneralizedVoronoiCovarianceMeasure<Space> VCM;
   typedef VCM::MatrixNN Matrix;
-
   Point a(0,0);
   Point c(32,32,32);
   Domain domain(a,c);
-  std::vector<Point> pts;
+    typedef typename Space::Point Point;          ///< the type of digital point
+    typedef typename Space::Size Size;            ///< the type for counting elements
+    typedef typename Space::Integer Integer;      ///< the type of each digital point coordinate, some integral type
+    typedef DGtal::HyperRectDomain<Space> Domain; ///< the type of rectangular domain of the VCM.
+  typedef VCM::WeightImage WeightImage;
+  typedef VCM::WeightImage WeightImage2;
+//WeightImage pts(Domain.begin(),Domain.end());
+  std::vector<VCM::Point> pts;
   pts.push_back( Point( 10,10,10 ) );
   pts.push_back( Point( 10,10,11 ) );
   pts.push_back( Point( 10,11,11 ) );
@@ -71,16 +77,22 @@ bool testVoronoiCovarianceMeasure()
   pts.push_back( Point( 20,20,15 ) );
   pts.push_back( Point( 30,10,25 ) );
   pts.push_back( Point( 25,25,20 ) );
+
+
+
   Metric l2;
-  VCM vcm( 5.0, 4.0, l2, true );
-  vcm.init( pts.begin(), pts.end() );
+  VCM vcm( 5.0, 4.0, 8 , true );
+//std::cerr << "aaaaaaaaaaaaa"<<std::endl; 
+   vcm.init( pts.begin(), pts.end() );
+//std::cerr << "bbbbbbbbbbbbbb"<<std::endl; 
   Domain d = vcm.domain();
   double sum_dist = 0.0;
   std::map<Point,int> sizeCells;
   for ( Domain::ConstIterator it = d.begin(), itE = d.end(); it != itE; ++it )
     {
-      sum_dist += l2( *it, vcm.voronoiMap()( *it ) );
-      sizeCells[ vcm.voronoiMap()( *it ) ] += 1;
+   //   std::cerr << l2.powerDistance( *it, vcm.powerMap()( *it ), 0.1 ) <<std::endl;
+      sum_dist += l2.powerDistance( *it, vcm.powerMap()( *it ), 0.1 );
+      sizeCells[ vcm.powerMap()( *it ) ] += 1;
     }
   double avg_dist = ( sum_dist / d.size() );
   trace.info() << "Average distance is " << avg_dist << std::endl;
@@ -96,14 +108,14 @@ bool testVoronoiCovarianceMeasure()
   trace.info() << "(" << nbok << "/" << nb << ") "
                << "sizeCells.size() == 10" << std::endl;
 
+
   HatPointFunction< Point, double > chi_r( 1.0, 4.0 );
   Matrix vcm_r = vcm.measure( chi_r, Point( 10,10,10 ) );
   trace.info() << "- vcm_r.row(0) = " << vcm_r.row( 0 ) << std::endl;
   trace.info() << "- vcm_r.row(1) = " << vcm_r.row( 1 ) << std::endl;
   trace.info() << "- vcm_r.row(2) = " << vcm_r.row( 2 ) << std::endl;
   trace.endBlock();
-  
-  return nbok == nb;
+  return 1;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -113,11 +125,13 @@ int main( int /* argc */, char** /* argv */ )
 {
   using namespace std;
   using namespace DGtal;
-  trace.beginBlock ( "Testing VoronoiCovarianceMeasure ..." );
-  bool res = testVoronoiCovarianceMeasure();
-  trace.emphase() << ( res ? "Passed." : "Error." ) << endl;
-  trace.endBlock();
-  return res ? 0 : 1;
+ // trace.beginBlock ( "Testing GeneralizedoronoiCovarianceMeasure ..." );
+  bool res = testGeneralizedVoronoiCovarianceMeasure();
+  //trace.emphase() << ( res ? "Passed." : "Error." ) << endl;
+  //trace.endBlock();
+return 1; 
+
+// return res ? 0 : 1;
 }
 //                                                                           //
 ///////////////////////////////////////////////////////////////////////////////

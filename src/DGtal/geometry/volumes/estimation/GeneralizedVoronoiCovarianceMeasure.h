@@ -48,7 +48,8 @@
 #include "DGtal/kernel/domains/HyperRectDomain.h"
 #include "DGtal/kernel/SimpleMatrix.h"
 #include "DGtal/images/ImageContainerBySTLVector.h"
-#include "DGtal/geometry/volumes/distance/VoronoiMap.h"
+#include "DGtal/geometry/volumes/distance/PowerMap.h"
+#include "DGtal/geometry/volumes/distance/ExactPredicateLpPowerSeparableMetric.h"
 #include "DGtal/geometry/volumes/CubicalSubdivision.h"
 //////////////////////////////////////////////////////////////////////////////
 
@@ -184,12 +185,14 @@ namespace DGtal
 
   public:
     typedef TSpace Space;                         ///< the type of digital space
-    typedef ExactPredicateLpSeparableMetric<Space,2> Metric; // L2-metric
+    typedef ExactPredicateLpPowerSeparableMetric<Space,2> Metric; // L2-metric
     typedef typename Space::Point Point;          ///< the type of digital point
+    typedef typename Space::Vector Vector;        ///< the type of digital vector
     typedef typename Space::Size Size;            ///< the type for counting elements
     typedef typename Space::Integer Integer;      ///< the type of each digital point coordinate, some integral type
     typedef DGtal::HyperRectDomain<Space> Domain; ///< the type of rectangular domain of the VCM.
     typedef DGtal::ImageContainerBySTLVector< Domain, double > WeightImage;///< the type of rectangular domain of the VCM.
+    typedef DGtal::ImageContainerBySTLVector< Domain, Vector > ProjectionImage;///< the type of rectangular domain of the VCM.
     typedef DGtal::ImageContainerBySTLVector<Domain,bool> CharacteristicSet; ///< the type of a binary image that is the characteristic function of K.
     typedef DGtal::CubicalSubdivision<Space> ProximityStructure; ///< the structure used for proximity queries.
 
@@ -214,7 +217,7 @@ namespace DGtal
       const CharacteristicSet* ptrSet;
     };
     typedef DGtal::NotPointPredicate<CharacteristicSetPredicate> NotPredicate; ///< the type of the point predicate used by the voronoi map.
-    typedef DGtal::PowerMap< WeightImage, Metric, WeightImage > PowerMap;
+    typedef DGtal::PowerMap< WeightImage, Metric, ProjectionImage > Power;
 // typedef DGtal::VoronoiMap<Space, NotPredicate, Metric > Voronoi; ///< the type of the Voronoi map.
 
     typedef double Scalar;                                    ///< the type for "real" numbers.
@@ -243,7 +246,7 @@ namespace DGtal
      * @param aMetric an instance of the metric.
      * @param verbose if 'true' displays information on ongoing computation.
      */
-    GeneralizedVoronoiCovarianceMeasure( double _R, double _r, Metric aMetric = Metric(), bool verbose = false );
+    GeneralizedVoronoiCovarianceMeasure( double _R, double _r, int _k, bool verbose = false );
 
     /**
      * Destructor.
@@ -256,6 +259,8 @@ namespace DGtal
     /// @return the parameter r in VCM(chi_r), i.e. an upper bound for
     /// the diameter of the support of kernel functions.
     Scalar r() const;
+
+    int k() const;
  
     /**
        Cleans intermediate data structure likes the characteristic set and the voronoi map.
@@ -280,12 +285,12 @@ namespace DGtal
 
     /// @return the current Voronoi map 
     /// @pre init must have been called before.
-    const Voronoi& voronoiMap() const;
+    const Power& powerMap() const;
 
     /// @return the Voronoi Covariance Matrix of each Voronoi cell as
     /// a map Point -> Matrix
     /// @note empty if \ref init has not been called.
-    const Point2MatrixNN& vcmMap() const;
+    const Point2MatrixNN& gvcmMap() const;
 
     /**
        Computes the Voronoi Covariance Measure of the function \a chi_r.
@@ -329,7 +334,7 @@ namespace DGtal
     /// diameter of the support of kernel functions.
     double mySmallR;
     /// The parameter k for the k-distance
-    double myk;    
+    int myk;    
     /// The metric chosen for the Voronoi map.
     Metric myMetric;
     /// Tells if it is verbose mode.
@@ -339,11 +344,13 @@ namespace DGtal
     /// A binary image that defines the characteristic set of K.
     CharacteristicSet* myCharSet;
     /// Stores the voronoi map.
-    Voronoi* myVoronoi;
+    Power* myPower;
     /// The map point -> VCM
-    Point2MatrixNN myVCM;
+    Point2MatrixNN myGVCM;
     /// The structure used for proximity queries.
     ProximityStructure* myProximityStructure;
+
+    WeightImage myWeightImage;
 
     // ------------------------- Hidden services ------------------------------
   protected:

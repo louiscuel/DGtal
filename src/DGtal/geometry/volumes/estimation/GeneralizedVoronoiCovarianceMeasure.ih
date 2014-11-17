@@ -1,5 +1,5 @@
-/**
- *  This program is free software: you can redistribute it and/or modify
+// -*-c++-*-
+ /* This program is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU Lesser General Public License as
  *  published by the Free Software Foundation, either version 3 of the
  *  License, or  (at your option) any later version.
@@ -15,13 +15,13 @@
  **/
 
 /**
- * @file VoronoiCovarianceMeasure.ih
+ * @file GeneralizedVoronoiCovarianceMeasure.ih
  * @author Jacques-Olivier Lachaud (\c jacques-olivier.lachaud@univ-savoie.fr )
  * Laboratory of Mathematics (CNRS, UMR 5127), University of Savoie, France
  *
  * @date 2014/02/09
  *
- * Implementation of inline methods defined in VoronoiCovarianceMeasure.h
+ * Implementation of inline methods defined in GeneralizedVoronoiCovarianceMeasure.h
  *
  * This file is part of the DGtal library.
  */
@@ -29,6 +29,16 @@
 
 //////////////////////////////////////////////////////////////////////////////
 #include <cstdlib>
+//CGAL
+#include <CGAL/Cartesian.h>
+#include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
+#include <CGAL/Delaunay_triangulation_3.h>
+#include <CGAL/Kd_tree.h>
+#include <CGAL/Search_traits_3.h>
+#include <CGAL/Fuzzy_sphere.h>
+#include <CGAL/Orthogonal_incremental_neighbor_search.h>
+#include <CGAL/Orthogonal_k_neighbor_search.h>
+#include <CGAL/Fuzzy_sphere.h>
 //////////////////////////////////////////////////////////////////////////////
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -39,122 +49,156 @@
 // ----------------------- Standard services ------------------------------
 
 //-----------------------------------------------------------------------------
-template <typename TSpace, typename TSeparableMetric>
+template <typename TSpace>
 inline
-DGtal::VoronoiCovarianceMeasure<TSpace,TSeparableMetric>::
-~VoronoiCovarianceMeasure()
+DGtal::GeneralizedVoronoiCovarianceMeasure<TSpace>::
+~GeneralizedVoronoiCovarianceMeasure()
 {
   clean();
 }
 //-----------------------------------------------------------------------------
-template <typename TSpace, typename TSeparableMetric>
+template <typename TSpace>
 inline
-DGtal::VoronoiCovarianceMeasure<TSpace,TSeparableMetric>::
-VoronoiCovarianceMeasure( double _R, double _r, Metric aMetric, bool verbose )
-  : myBigR( _R ), myMetric( aMetric ), myVerbose( verbose ),
+DGtal::GeneralizedVoronoiCovarianceMeasure<TSpace>::
+GeneralizedVoronoiCovarianceMeasure( double _R, double _r, int _k, bool verbose )
+  : myk( _k ),myBigR( _R ), myVerbose( verbose ),
     myDomain( Point(0,0,0), Point(0,0,0) ), // dummy domain
     myCharSet( 0 ), 
-    myVoronoi( 0 ),
-    myProximityStructure( 0 )
+    myPower( 0 ),
+    myProximityStructure( 0 ),	
+    myWeightImage( myDomain ) // dummy domain
 {
   mySmallR = (_r >= 2.0) ? _r : 2.0;
 }
 //-----------------------------------------------------------------------------
-template <typename TSpace, typename TSeparableMetric>
+template <typename TSpace>
 inline
-DGtal::VoronoiCovarianceMeasure<TSpace,TSeparableMetric>::
-VoronoiCovarianceMeasure( const VoronoiCovarianceMeasure& other )
-  : myBigR( other.myBigR ), mySmallR( other.mySmallR ),
-    myMetric( other.myMetric ), myVerbose( other.myVerbose ),
+DGtal::GeneralizedVoronoiCovarianceMeasure<TSpace>::
+GeneralizedVoronoiCovarianceMeasure( const GeneralizedVoronoiCovarianceMeasure& other )
+  : myk(other.myk), myBigR( other.myBigR ), mySmallR( other.mySmallR ),
+    myVerbose( other.myVerbose ),
     myDomain( other.myDomain )
 {
   if ( other.myCharSet ) myCharSet = new CharacteristicSet( *other.myCharSet );
   else                   myCharSet = 0;
-  if ( other.myVoronoi ) myVoronoi = new Voronoi( *other.myVoronoi );
-  else                   myVoronoi = 0;
+  if ( other.myPower ) myPower = new Power( *other.myPower );
+  else                   myPower = 0;
   if ( other.myProximityStructure ) 
-                         myProximityStructure = new ProximityStructure( *other.myVoronoi );
+                         myProximityStructure = new ProximityStructure( *other.myPower );
   else                   myProximityStructure = 0;
 }
 //-----------------------------------------------------------------------------
-template <typename TSpace, typename TSeparableMetric>
+template <typename TSpace>
 inline
-DGtal::VoronoiCovarianceMeasure<TSpace,TSeparableMetric>&
-DGtal::VoronoiCovarianceMeasure<TSpace,TSeparableMetric>::
-operator=( const VoronoiCovarianceMeasure& other )
+DGtal::GeneralizedVoronoiCovarianceMeasure<TSpace>&
+DGtal::GeneralizedVoronoiCovarianceMeasure<TSpace>::
+operator=( const GeneralizedVoronoiCovarianceMeasure& other )
 {
   if ( this != &other )
     {
+      myk = other.myk;
       myBigR = other.myBigR;
       mySmallR = other.mySmallR;
-      myMetric = other.myMetric;
       myVerbose = other.myVerbose;
       myDomain = other.myDomain;
       clean();
       if ( other.myCharSet ) myCharSet = new CharacteristicSet( *other.myCharSet );
-      if ( other.myVoronoi ) myVoronoi = new Voronoi( *other.myVoronoi );
+      if ( other.myPower ) myPower = new Power( *other.myPower );
       if ( other.myProximityStructure ) 
-                             myProximityStructure = new ProximityStructure( *other.myVoronoi );
+                             myProximityStructure = new ProximityStructure( *other.myPower );
     }
   return *this;
 }
 //-----------------------------------------------------------------------------
-template <typename TSpace, typename TSeparableMetric>
+template <typename TSpace >
 inline
-typename DGtal::VoronoiCovarianceMeasure<TSpace,TSeparableMetric>::Scalar
-DGtal::VoronoiCovarianceMeasure<TSpace,TSeparableMetric>::
+typename DGtal::GeneralizedVoronoiCovarianceMeasure<TSpace>::Scalar
+DGtal::GeneralizedVoronoiCovarianceMeasure<TSpace>::
 R() const
 { 
   return myBigR; 
 }
 //-----------------------------------------------------------------------------
-template <typename TSpace, typename TSeparableMetric>
+template <typename TSpace >
 inline
-typename DGtal::VoronoiCovarianceMeasure<TSpace,TSeparableMetric>::Scalar
-DGtal::VoronoiCovarianceMeasure<TSpace,TSeparableMetric>::
+typename DGtal::GeneralizedVoronoiCovarianceMeasure<TSpace>::Scalar
+DGtal::GeneralizedVoronoiCovarianceMeasure<TSpace>::
 r() const
 { 
   return mySmallR; 
 }
+
+
+template <typename TSpace >
+inline
+int
+DGtal::GeneralizedVoronoiCovarianceMeasure<TSpace>::
+k() const
+{ 
+  return myk; 
+}
+
+
 //-----------------------------------------------------------------------------
-template <typename TSpace, typename TSeparableMetric>
+template <typename TSpace >
 inline
 void
-DGtal::VoronoiCovarianceMeasure<TSpace,TSeparableMetric>::
+DGtal::GeneralizedVoronoiCovarianceMeasure<TSpace>::
 clean()
 {
   if ( myCharSet ) { delete myCharSet; myCharSet = 0; }
-  if ( myVoronoi ) { delete myVoronoi; myVoronoi = 0; }
+  if ( myPower ) { delete myPower; myPower = 0; }
   if ( myProximityStructure ) 
                    { delete myProximityStructure; myProximityStructure = 0; }
 }
 
 //-----------------------------------------------------------------------------
-template <typename TSpace, typename TSeparableMetric>
+template <typename TSpace >
 inline
-const typename DGtal::VoronoiCovarianceMeasure<TSpace,TSeparableMetric>::Domain&
-DGtal::VoronoiCovarianceMeasure<TSpace,TSeparableMetric>::
+const typename DGtal::GeneralizedVoronoiCovarianceMeasure<TSpace>::Domain&
+DGtal::GeneralizedVoronoiCovarianceMeasure<TSpace>::
 domain() const
 {
   return myDomain;
 }
 //-----------------------------------------------------------------------------
-template <typename TSpace, typename TSeparableMetric>
+template <typename TSpace >
 inline
-const typename DGtal::VoronoiCovarianceMeasure<TSpace,TSeparableMetric>::Voronoi&
-DGtal::VoronoiCovarianceMeasure<TSpace,TSeparableMetric>::
-voronoiMap() const
+const typename DGtal::GeneralizedVoronoiCovarianceMeasure<TSpace>::Power&
+DGtal::GeneralizedVoronoiCovarianceMeasure<TSpace>::
+powerMap() const
 { 
-  ASSERT( myVoronoi != 0 );
-  return *myVoronoi;
+  ASSERT( myPower != 0 );
+  return *myPower;
 }
 
+
+
+//----------------------------------------------------------------------------
+typedef CGAL::Exact_predicates_inexact_constructions_kernel K;
+typedef K::FT FT;
+typedef K::Point_3 CGALPoint;
+typedef K::Vector_3 CGALVector;
+typedef std::vector<CGALPoint> PointCloud;
+typedef typename CGAL::Search_traits_3<K> Traits;
+typedef typename CGAL::Kd_tree<Traits> Tree;
+typedef typename CGAL::Fuzzy_sphere<Traits> Fuzzy_sphere;
+typedef std::pair<double, double> paird;
+typedef K::Plane_3             Plane;
+typedef CGAL::Orthogonal_incremental_neighbor_search<Traits> NN_incremental_search;
+typedef NN_incremental_search::iterator NN_iterator;
+struct X_in_the_ball {
+	const double r; 
+	X_in_the_ball(double radius) : r(radius) {};
+	bool operator()(const NN_iterator& it) const { return std::sqrt((*it).second) >= r;}
+	};
+	typedef CGAL::Filter_iterator<NN_iterator, X_in_the_ball> NN_r_iterator;
 //-----------------------------------------------------------------------------
-template <typename TSpace, typename TSeparableMetric>
+template <typename TSpace >
 template <typename PointInputIterator>
 inline
 void
-DGtal::VoronoiCovarianceMeasure<TSpace,TSeparableMetric>::
+DGtal::GeneralizedVoronoiCovarianceMeasure<TSpace>::
 init( PointInputIterator itb, PointInputIterator ite )
 {
   BOOST_CONCEPT_ASSERT(( boost::InputIterator< PointInputIterator > ));
@@ -164,12 +208,12 @@ init( PointInputIterator itb, PointInputIterator ite )
 
   // Cleaning stuff.
   clean();
-  myVCM.clear();
-
+  myGVCM.clear();
+  
   // Start computations
-  if ( myVerbose ) trace.beginBlock( "Computing Voronoi Covariance Measure." );
+  if ( myVerbose ) trace.beginBlock( "Computing Generalised Voronoi Covariance Measure." );
 
-  // First pass to get domain.
+  // Then first pass to get domain.
   if ( myVerbose ) trace.beginBlock( "Determining computation domain." );
   Point lower = *itb;
   Point upper = *itb;
@@ -180,48 +224,77 @@ init( PointInputIterator itb, PointInputIterator ite )
       Point p = *it;
       lower = lower.inf( p );
       upper = upper.sup( p );
-      myVCM[ p ] = matrixZero;
+      myGVCM[ p ] = matrixZero;
     }
-  Integer intR = (Integer) ceil( myBigR );
+
+    Integer intR = (Integer) ceil( myBigR );
   lower -= Point::diagonal( intR );
   upper += Point::diagonal( intR );
   myDomain = Domain( lower, upper );
   if ( myVerbose ) trace.endBlock();
 
-  // Second pass to compute characteristic set.
+  // Second pass to compute characteristic set and compute weights.
   if ( myVerbose ) trace.beginBlock( "Computing characteristic set and building proximity structure." );
-  myCharSet = new CharacteristicSet( myDomain );
-  myProximityStructure = new ProximityStructure( lower, upper, (Integer) ceil( mySmallR ) );
-  for ( ; itb != ite; ++itb )
-    {
+//  myCharSet = new CharacteristicSet( myDomain );
+  myWeightImage = WeightImage(myDomain);
+  PointCloud points;
+  std::vector<double> weights;
+
+
+   myProximityStructure = new ProximityStructure( lower, upper, (Integer) ceil( mySmallR ) );
+   for ( ; itb != ite; ++itb )
+   {
       Point p = *itb;
-      myCharSet->setValue( p, true );
+      CGALPoint pCGAL((double) p[0],(double) p[1],(double) p[2]);
+      points.push_back(pCGAL);
       myProximityStructure->push( p );
-    }
-  if ( myVerbose ) trace.endBlock();
+      myWeightImage.setValue(p,0.1);
+   }
+   Tree tree (points.begin(), points.end());
+   for (int i = 0; i< points.size();++i)
+   {
+      CGALPoint query= points[i];
+      NN_incremental_search NN(tree, query);
+      NN_r_iterator it(NN.end(), X_in_the_ball(1000.0), NN.begin()), end(NN.end(), X_in_the_ball(1000.0));
+      CGALVector bary = query - CGAL::ORIGIN;
+      it++;
+      double theweight = 0.0;
+
+      for (int j = 1; j< myk;++j)
+      {
+         bary = bary +( (*it).first - CGAL::ORIGIN );
+         theweight = theweight + ( (*it).first - query )*( (*it).first - query );
+      if(j<myk) {  ++it;}
+      }
+
+      bary = bary /myk;
+      theweight = (-1)*theweight/myk;
+      if(myk==1){theweight = 1.0/points.size();}
+      Point baryDigital((int) bary.x(),(int) bary.y(),(int) bary.z());
+      myWeightImage.setValue(baryDigital,theweight);
+   }
+   if ( myVerbose ) trace.endBlock();
 
   // Third pass to compute voronoi map.
-  if ( myVerbose ) trace.beginBlock( "Computing voronoi map." );
+   if ( myVerbose ) trace.beginBlock( "Computing power map." );
   // Voronoi diagram is computed onto complement of K.
-  CharacteristicSetPredicate inCharSet( *myCharSet );
-  NotPredicate notSetPred( inCharSet );
-  myVoronoi = new Voronoi( myDomain, notSetPred, myMetric );
-  if ( myVerbose ) trace.endBlock();
-
+ // NotPredicate notSetPred( inCharSet );
+  myPower = new Power( myDomain, myWeightImage, myMetric );
+   if ( myVerbose ) trace.endBlock();
   // On parcourt le domaine pour calculer le VCM.
-  if ( myVerbose ) trace.beginBlock( "Computing VCM with R-offset." );
-  Size domain_size = myDomain.size();
-  Size di = 0;
-  MatrixNN m;
-  for ( typename Domain::ConstIterator itDomain = myDomain.begin(), itDomainEnd = myDomain.end();
+   if ( myVerbose ) trace.beginBlock( "Computing GVCM with R-offset." );
+   Size domain_size = myDomain.size();
+   Size di = 0;
+   MatrixNN m;
+   for ( typename Domain::ConstIterator itDomain = myDomain.begin(), itDomainEnd = myDomain.end();
         itDomain != itDomainEnd; ++itDomain )
-    {
+   {
       if ( myVerbose ) trace.progressBar(++di,domain_size);
       Point p = *itDomain;
-      Point q = (*myVoronoi)( p );   // closest site to p
+      Point q = (*myPower)( p );   // closest site to p
       if ( q != p )
         {
-          double d = myMetric( q, p );
+          double d = myMetric.powerDistance( p, q, myWeightImage(q));
           if ( d <= myBigR ) // We restrict computation to the R offset of K.
             { 
               VectorN v( p[ 0 ] - q[ 0 ], p[ 1 ] - q[ 1 ], p[ 2 ] - q[ 2 ] );
@@ -229,21 +302,21 @@ init( PointInputIterator itb, PointInputIterator ite )
               for ( Dimension i = 0; i < 3; ++i ) 
                 for ( Dimension j = 0; j < 3; ++j )
                   m.setComponent( i, j, v[ i ] * v[ j ] ); 
-              myVCM[ q ] += m;
+              myGVCM[ q ] += m;
             }
         }
     }
-  if ( myVerbose ) trace.endBlock();
+ /* if ( myVerbose ) trace.endBlock();
  
-  if ( myVerbose ) trace.endBlock();
+  if ( myVerbose ) trace.endBlock();*/
 }
 
 //-----------------------------------------------------------------------------
-template <typename TSpace, typename TSeparableMetric>
+template <typename TSpace >
 template <typename Point2ScalarFunction>
 inline
-typename DGtal::VoronoiCovarianceMeasure<TSpace,TSeparableMetric>::MatrixNN
-DGtal::VoronoiCovarianceMeasure<TSpace,TSeparableMetric>::
+typename DGtal::GeneralizedVoronoiCovarianceMeasure<TSpace>::MatrixNN
+DGtal::GeneralizedVoronoiCovarianceMeasure<TSpace>::
 measure( Point2ScalarFunction chi_r, Point p ) const
 {
   ASSERT( myProximityStructure != 0 );
@@ -252,7 +325,7 @@ measure( Point2ScalarFunction chi_r, Point p ) const
   myProximityStructure->getPoints( neighbors, 
                                    b - Point::diagonal(1),
                                    b + Point::diagonal(1) );
-  MatrixNN vcm;
+  MatrixNN gvcm;
   // std::cout << *it << " has " << neighbors.size() << " neighbors." << std::endl;
   for ( typename std::vector<Point>::const_iterator it_neighbors = neighbors.begin(),
           it_neighbors_end = neighbors.end(); it_neighbors != it_neighbors_end; ++it_neighbors )
@@ -261,24 +334,24 @@ measure( Point2ScalarFunction chi_r, Point p ) const
       Scalar coef = chi_r( q - p );
       if ( coef > 0.0 ) 
         {
-          typename std::map<Point,MatrixNN>::const_iterator it = myVCM.find( q );
-          ASSERT( it != myVCM.end() );
-          MatrixNN vcm_q = it->second;
-          vcm_q *= coef;
-          vcm += vcm_q;
+          typename std::map<Point,MatrixNN>::const_iterator it = myGVCM.find( q );
+          ASSERT( it != myGVCM.end() );
+          MatrixNN gvcm_q = it->second;
+          gvcm_q *= coef;
+          gvcm += gvcm_q;
         }
     }
-  return vcm;
+  return gvcm;
 }
 
 //-----------------------------------------------------------------------------
-template <typename TSpace, typename TSeparableMetric>
+template <typename TSpace >
 inline
-const typename DGtal::VoronoiCovarianceMeasure<TSpace,TSeparableMetric>::Point2MatrixNN&
-DGtal::VoronoiCovarianceMeasure<TSpace,TSeparableMetric>::
-vcmMap() const
+const typename DGtal::GeneralizedVoronoiCovarianceMeasure<TSpace>::Point2MatrixNN&
+DGtal::GeneralizedVoronoiCovarianceMeasure<TSpace>::
+gvcmMap() const
 {
-  return myVCM;
+  return myGVCM;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -288,23 +361,23 @@ vcmMap() const
  * Writes/Displays the object on an output stream.
  * @param out the output stream where the object is written.
  */
-template <typename TSpace, typename TSeparableMetric>
+template <typename TSpace >
 inline
 void
-DGtal::VoronoiCovarianceMeasure<TSpace, TSeparableMetric>::
+DGtal::GeneralizedVoronoiCovarianceMeasure<TSpace>::
 selfDisplay ( std::ostream & out ) const
 {
-  out << "[VoronoiCovarianceMeasure]";
+  out << "[GeneralizedVoronoiCovarianceMeasure]";
 }
 
 /**
  * Checks the validity/consistency of the object.
  * @return 'true' if the object is valid, 'false' otherwise.
  */
-template <typename TSpace, typename TSeparableMetric>
+template <typename TSpace >
 inline
 bool
-DGtal::VoronoiCovarianceMeasure<TSpace, TSeparableMetric>::
+DGtal::GeneralizedVoronoiCovarianceMeasure<TSpace>::
 isValid() const
 {
     return true;
@@ -315,11 +388,11 @@ isValid() const
 ///////////////////////////////////////////////////////////////////////////////
 // Implementation of inline functions                                        //
 
-template <typename TSpace, typename TSeparableMetric>
+template <typename TSpace >
 inline
 std::ostream&
 DGtal::operator<< ( std::ostream & out, 
-		  const VoronoiCovarianceMeasure<TSpace, TSeparableMetric> & object )
+		  const GeneralizedVoronoiCovarianceMeasure<TSpace> & object )
 {
   object.selfDisplay( out );
   return out;

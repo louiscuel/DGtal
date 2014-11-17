@@ -47,7 +47,7 @@
 #include "DGtal/topology/CDigitalSurfaceContainer.h"
 #include "DGtal/topology/DigitalSurface.h"
 #include "DGtal/geometry/volumes/distance/CSeparableMetric.h"
-#include "DGtal/geometry/volumes/estimation/VoronoiCovarianceMeasure.h"
+#include "DGtal/geometry/volumes/estimation/GeneralizedVoronoiCovarianceMeasure.h"
 //////////////////////////////////////////////////////////////////////////////
 
 namespace DGtal
@@ -97,7 +97,7 @@ namespace DGtal
     typedef typename KSpace::SCell                    SCell;  ///< the signed cells
     typedef typename KSpace::Space                    Space;  ///< the digital space
     typedef typename KSpace::Point                    Point;  ///< the digital points
-    typedef VoronoiCovarianceMeasure<Space,Metric>      VCM;  ///< the Voronoi Covariance Measure
+    typedef GeneralizedVoronoiCovarianceMeasure<Space>      VCM;  ///< the Voronoi Covariance Measure
     typedef typename VCM::Scalar                     Scalar;  ///< the "real number" type
     typedef typename Surface::ConstIterator   ConstIterator;  ///< the iterator for traversing the surface
     typedef EigenDecomposition<KSpace::dimension,Scalar> LinearAlgebraTool;  ///< diagonalizer (nD).
@@ -158,7 +158,7 @@ namespace DGtal
      */
     VoronoiCovarianceMeasureOnDigitalSurface( ConstAlias< Surface > _surface, 
                                               Surfel2PointEmbedding _surfelEmbedding,
-                                              Scalar _R, Scalar _r, 
+                                              Scalar _R, Scalar _r, int k,
                                               KernelFunction chi_r,
                                               Scalar t = 2.5, Metric aMetric = Metric(), 
                                               bool verbose = false );

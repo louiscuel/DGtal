@@ -79,6 +79,7 @@ bool testVoronoiCovarianceMeasure()
   std::map<Point,int> sizeCells;
   for ( Domain::ConstIterator it = d.begin(), itE = d.end(); it != itE; ++it )
     {
+      std::cerr << l2( *it, vcm.voronoiMap()( *it ) ) <<std::endl;
       sum_dist += l2( *it, vcm.voronoiMap()( *it ) );
       sizeCells[ vcm.voronoiMap()( *it ) ] += 1;
     }

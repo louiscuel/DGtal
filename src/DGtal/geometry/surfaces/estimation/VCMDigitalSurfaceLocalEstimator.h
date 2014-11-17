@@ -184,7 +184,7 @@ namespace DGtal
      * @param[in] verbose if 'true' displays information on ongoing computation.
      */
     void setParams( Surfel2PointEmbedding surfelEmbedding,
-                    const Scalar R, const Scalar r, KernelFunction chi_r,
+                    const Scalar R, const Scalar r, int k, KernelFunction chi_r,
                     const Scalar t = 2.5, Metric aMetric = Metric(), bool verbose = true );
 
     /**

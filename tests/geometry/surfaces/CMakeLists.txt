@@ -14,7 +14,7 @@ SET(TESTS_SURFACES_SRC
   testIntegralInvariantMeanCurvatureEstimator3D
   testIntegralInvariantGaussianCurvatureEstimator3D
   testLocalEstimatorFromFunctorAdapter
-  testVoronoiCovarianceMeasureOnSurface
+  #testVoronoiCovarianceMeasureOnSurface
   )
 
 FOREACH(FILE ${TESTS_SURFACES_SRC})
